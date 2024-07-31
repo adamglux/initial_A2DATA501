@@ -9,6 +9,8 @@ output:
   df_print: kable
   html_document:
     df_print: paged
+bibliography: refs.bib
+nocite: '@*'
 ---
 
 ```{r setup, include=FALSE}
@@ -112,16 +114,42 @@ panderOptions('table.split.table', Inf)
 # https://bookdown.org/yihui/rmarkdown/pdf-document.html
 ```
   
+# Notes (remove later)
+
+The code should be able to calculate at least three measures of influence:
+• Cooks Distance Measure (Cook, 1977)
+• DFFITS (Welsch and Kuh, 1977; Belsley, 1980) • Hadis Influence Measure (Hadi, 1992)
+Note: Regression Analysis by Example (Hadi, Ali S; 2012; 5th Edition,Chapter 4) might be helpful.
+  
 # Background
 
 # Data
 
 \newpage
-# Q1 
 
-## 1a. 
+Cook's distance is defined as
 
-### 1ai
+$$C_i = \frac{\sum^n_{j=1}(\hat y_j - \hat y_{j(i)})^2}{\hat \sigma^2(p+1)}$$
+
+which can also be written as: 
+
+$$C_i = \frac{r^2_i}{p+1}\times \frac{h_{ii}}{1-h_{ii}}$$
+
+[@uzuke_identifying_2021]
+
+where $r^{*}_i$ is the standardised residual, $r^*_i = \frac{e_i}{\sigma_{(i)}\sqrt{1-h_{ii}}}$, and $h_{ii}$ is the diagonal of the hat matrix, H, given by $H = X'(X'X)^{-1}X$, called leverages.  
+
+
+
+DFFITS: [@welsch_linear_1977]
+
+$$\text{DFFITS}_i = \sqrt{(\frac{n-p}{p})(\frac{h_i}{1-h_i}) r^{*2}_i }$$
+
+
+
+Leverage points: [@welsch_linear_1977]
+$$h_i > \frac{2p}{n}$$
+
 
 
 _____
@@ -133,3 +161,8 @@ End of Assignment 2, DATA501
 \end{center}
 
 _____
+
+
+# References
+
+<div id="refs"></div>
