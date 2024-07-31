@@ -1,0 +1,135 @@
+---
+title: "Assignment2 DATA501"
+author: "Adam g. 300619334"
+date: "August 2024"
+fontsize: 10pt
+output:
+  pdf_document: null
+  theme: united
+  df_print: kable
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages
+
+```{r packages,results='hide', collapse=TRUE, message=FALSE}
+library(knitr)
+library(pander)
+library(dplyr)
+library(ggplot2)
+library(basetheme)
+```
+
+<!-- Settings and Options -->
+<!--  -  -->
+<!--  - -->
+<!--  -  -->
+
+```{r ggplot_theme, echo = FALSE}
+
+# NB: for the purposes of style and form, plots and graphs will use the following code to keep style consistent. Code for this function will not show in the knitted PDF file, but is available from the .Rmd file. 
+
+#####  ggplot theme ######
+
+adams.plot <- function() {
+  theme(
+
+    # add border 1)
+    panel.border = element_rect(colour = "grey4", fill = NA, linetype = 1),
+
+    # color background 2)
+    panel.background = element_rect(fill = NA),
+
+    # modify grid 3)
+    #panel.grid.major.x = element_line(colour = "grey4", linetype = 3, size = 0.25),
+    panel.grid.minor.x = element_blank(),
+   # panel.grid.major.y =  element_line(colour = "grey4", linetype = 3, size = 0.25),
+    panel.grid.minor.y = element_blank(),
+
+    # modify text, axis and colour 4) and 5)
+    axis.text = element_text(colour = "grey4", face = "italic", family = "Courier", size = 9),
+    axis.title = element_text(colour = "grey4", family = "Courier", size = 9),
+    plot.title = element_text(colour = "grey4", family = "Courier", size = 9),
+    axis.ticks = element_line(colour = "grey4"),
+    # legend at the bottom 6)
+    legend.position = "bottom"
+
+  )
+}
+
+```
+
+```{r plot_theme, echo = FALSE}
+
+#####  base-plots theme ######
+
+adamplot <- basetheme("clean")
+
+
+adamplot$palette <- palette("Okabe-Ito")  # numbered colors - shades of grey
+adamplot$bg  <- "white"                         # some colors
+adamplot$fg  <- "gray20"                       # some colors
+adamplot$col.main <- "grey4"                    # some colors
+adamplot$col.axis <- "grey4"                   # some colors
+adamplot$col.lab  <- "grey4"                   # some colors
+adamplot$family   <-  "mono"                    # change font
+# adamplot$lab      <-  c(5,5,7)                # num ticks on axes
+adamplot$cex.axis <-  0.8                       # smaller axis labels
+adamplot$las      <-  1                         # 1 for always horizontal axis labels
+adamplot$rect.border <- "grey4"                 # box around the plot
+adamplot$rect.lwd    <- 1                       # ticker border
+adamplot$font.main <-  1                        # font for main title
+adamplot$pch <- "."                              # symbol option
+adamplot$cex <- 0.75
+
+
+basetheme(adamplot)
+```
+
+```{r pander_options, echo=FALSE}
+#pander options
+panderOptions('missing', '')
+panderOptions('table.split.table', Inf)
+```
+
+```{r misc, echo = FALSE}
+
+# plot sizes 
+# chunk setup: 
+#{r echo = FALSE, fig.height = 4, fig.width = 5, fig.align='center'}
+# 6.5x4.5 is used by default
+
+# Pander settings 
+
+# Additional settings
+#update: set WD to 
+# devtools::install("../skeleton")
+# https://bookdown.org/yihui/rmarkdown/pdf-document.html
+```
+  
+# Background
+
+# Data
+
+\newpage
+# Q1 
+
+## 1a. 
+
+### 1ai
+
+
+_____
+
+
+\begin{center}
+End of Assignment 2, DATA501
+
+\end{center}
+
+_____
