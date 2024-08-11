@@ -118,37 +118,264 @@ panderOptions('table.split.table', Inf)
 
 The code should be able to calculate at least three measures of influence:
 • Cooks Distance Measure (Cook, 1977)
-• DFFITS (Welsch and Kuh, 1977; Belsley, 1980) • Hadis Influence Measure (Hadi, 1992)
+• DFFITS (Welsch and Kuh, 1977; Belsley, 1980) 
+• Hadi's Influence Measure (Hadi, 1992)
 Note: Regression Analysis by Example (Hadi, Ali S; 2012; 5th Edition,Chapter 4) might be helpful.
   
 # Background
 
-# Data
+### Cooks Distance 
 
-\newpage
+In the Detection of Influential Observation in Linear Regression, Cook demonstrates,
 
-Cook's distance is defined as
+>> A new measure based on confidence ellipsoids... for judging the contribution of each data point to the determination of the least squares estimate of the parameter vector in full rank linear regression models. It is shown that the measure combines information from the studentized residuals and the variances of the residuals and predicted values. Two examples are presented. [@cook_detection_1977]
 
-$$C_i = \frac{\sum^n_{j=1}(\hat y_j - \hat y_{j(i)})^2}{\hat \sigma^2(p+1)}$$
+In regression analysis, critical observations may skew, or effect the coefficients of estimation, and often these points need further analysis or deletion. Cook addresses the problem of determining which points are such of such critical value, by suggesting an interpretable measure that combines the variance of each residual, $\hat V(R_i)$, with studentised residuals, $t_i$, "(i.e. the residual divided by its standard error) have been recommended as more appropriate than the standardized residuals (i.e., the residual divided by the square root of the mean square for error) for detecting outliers." (@cook_detection_1977)
 
-which can also be written as: 
+Studentised residual is given by:
 
-$$C_i = \frac{r^2_i}{p+1}\times \frac{h_{ii}}{1-h_{ii}}$$
+$$t_i = [\frac{Y_i - \mathbf{x_i}'\hat \beta}{s\sqrt{1-v_i}}]$$
 
-[@uzuke_identifying_2021]
+Where $v_i$ is the diagonal of the hat matrix (later given as $h_{ii}$). In the vector linear regression model, $\mathbf{Y} = \mathbf{X}\beta + \mathbf{e}$, residuals are given by: $\mathbf{R} = (R_i) = (\mathbf{I} - \mathbf{X}(\mathbf{X'}\mathbf{X})^{-1}\mathbf{X'})\mathbf{Y}$. 
 
-where $r^{*}_i$ is the standardised residual, $r^*_i = \frac{e_i}{\sigma_{(i)}\sqrt{1-h_{ii}}}$, and $h_{ii}$ is the diagonal of the hat matrix, H, given by $H = X'(X'X)^{-1}X$, called leverages.  
+Cook demonstrates that when we remove the ith point from the dataset, to produce $\mathbf{X}_{(i-1)}$, we get a measure of influence for the ith point in the vector of parameter estimates, $\hat \beta_{(-i)} = \hat \beta - \hat \beta_{i-1}$. Cook classifies this as when $D_i$ is greater than the median point of the $F_{p+1,(n-p-1)}$ distribution. This is measured by:^[note: *p* is the set of predictors of a full rank matrix, $\mathbf{X}$, and is sometimes given as $p + 1$, to indicate that the measure includes all parameters plus an intercept.]  
+
+$$D_i = \frac{t_i^2}{p}\frac{V(\hat Y_i)}{V(R_i)}$$
+
+Steps for calculating Cook's distance in R (assuming that model has been fit):
+
+- Calculate regression coefficients, $\hat \beta = (X^TX)^{-1}X^Ty$
+- calculate $\hat y_i = X\hat \beta$ and residuals $r_i = y_i - \hat y_i$
+- get $\hat \sigma^2 = \frac{1}{n-p}\sum r^2_i$
+- Obtain the Hat matrix: $H = X(X^TX)^{-1}X^T$
+- Diagonal values are leverage values, $h_{ii}$
+- Calculate studentised residuals $t_i = \frac{r_i}{s\sqrt{1-h_ii}}$, for $s = \sqrt{\frac{\sum e^2}{n-p}}$
+- store any values greater |2| 
+- Get $V(R_i) = (I - H)\sigma^2$, $V(\hat Y) = H\sigma^2$
+- Calculate $D_i = \frac{t_i^2}{p}\frac{V(\hat Y_i)}{V(R_i)}$
+
+### DFFITS
+
+DFFITS is a diagnostic measure that assesses how much a fitted value for a point changes when that point is omitted from the model [@welsch_linear_1977]. DFFITS is similar to Cook's distance but provides a slightly different perspective by focusing on the change in predicted values rather than the overall fit of the model.
+
+This measure is given by: [@uzuke_identifying_2021]
+
+$$DFFITs_i = \frac{\hat y_j - \hat y_{j(i)}}{\hat\sigma_{(i)}\sqrt{h_{ii}}}$$
+
+where $\hat y_j - \hat y_{j(i)} = t_i\sqrt{h_{ii}}$ and so $DFFITs_i = t_i\sqrt{\frac{h_{ii}}{1-h_{ii}}}$ 
+
+To calculate DFFITS (assuming model is fit and Cook's distance has been calculated using the above):
+
+- Use studentised residuals and leverage points calculated above to obtain DFFITS. 
+
+### Hadi's Influcence
+
+Hadi's measure is based on influential observations in the response or predictors, or both. 
+
+From Hadi (1992), we get the following methodology: 
+
+>We first order the n observations, using an appropriately chosen robust measure of outlyingness, then divide the data set into two initial subsets: A ‘basic’ subset which contains p +1 ‘good’ observations and a ‘non-basic’ subset which contains the remaining n - p - 1 observations. 
+
+>Second, we compute the relative distance from each point in the data set to the centre of the basic subset, relative to the (possibly singular) covariance matrix of the basic subset. 
+
+>Third, we rearrange the n observations in ascending order accordingly, then divide the data set into two subsets: A basic subset which contains the first p + 2 observations and a non-basic subset which contains the remaining n - p - 2 observations. 
+
+>This process is repeated until an appropriately chosen stopping criterion is met. The final non-basic subset of observations is declared an outlying subset. 
+
+[@hadi_identifying_1992]
+
+The resulting equation is given by: 
+
+$$H_i = \frac{h_{ii}}{1-h_{ii}} + \frac{p+1}{1-h_{ii}}\frac{d^2_i}{1-d^2_i}$$
+
+Where $d_i = \frac{e_i}{\sqrt{SSE}}$. Here we have an additive function formed from the hat matrix with the a function of residuals. Large values for $H_i$ are influential given both the response and the predictor variables. 
+
+### Influencial Observations
+
+There are different methods for choosing a cut-off threshold for Cook's Distance. As $D_i \sim F_{p,n-p}$, cut off can used as the median point, $F_{0.5(p,n-p)}$ [@bollen_regression_1985]. For the test data, this value is close to 1 (0.8392304), however many sources use $\frac{4}{n}$ as a cut-off for identifying influential points, which for the test data was 0.02. 
+
+As the purpose is to identify outliers, visually, $\frac{4}{n}$ will be used, with the conceit that $\approx 1$ is the bar for problematic points. 
+
+For DFFITs, points that are $|DFFITs_i|\ge 3\sqrt{\frac{p+1}{(n-p-1)}}$ will be considered influential.
+
+Kuh, and Welsch recommend 2 as a general cut-off value to indicate a value of influence. [@welsch_linear_1977]
 
 
+# Function 
 
-DFFITS: [@welsch_linear_1977]
+###delete this:
 
-$$\text{DFFITS}_i = \sqrt{(\frac{n-p}{p})(\frac{h_i}{1-h_i}) r^{*2}_i }$$
+```{r}
+data <- read.csv("Data/loss.csv")
+lm1 <- lm(loss ~ weight + gender + time, data = data)
+lm2 <- glm(loss ~ weight + gender + time, data = data)
+summary(lm1)
+
+summary(lm2)
+
+lm2$model
+lm1$model
+
+lm2$model[-1]
+lm1$model
+
+t(as.matrix(lm1$model)) %*% (as.matrix(lm1$model))
 
 
+y <- lm2$model[1]
+y <- data.matrix(y)
+  # get X matrix
+  X <- lm2$model[-1]
+  X <- cbind(intercept = rep(1, nrow(X)), X)
+  X <- data.matrix(X)
+  
+  # compute Beta hat
+  XtX <- t(X) %*% X
+  beta.hat <- solve(XtX) %*% t(X) %*% y
+  
+  dim(X)
+```
 
-Leverage points: [@welsch_linear_1977]
-$$h_i > \frac{2p}{n}$$
+
+___ 
+
+```{r}
+
+influencer <- function(model, data, plot = "none") {
+  
+  ##### input validation 
+  
+  ##### obtain model variables 
+  # get y
+  y <- model$model[1]
+  y <- data.matrix(y)
+  # get X matrix
+  X <- model$model[-1]
+  X <- cbind(intercept = rep(1, nrow(X)), X)
+  X <- data.matrix(X)
+  
+  # compute Beta hat
+  XtX <- t(X) %*% X
+  XtX_inv <- solve(XtX)
+  beta_hat <- XtX_inv %*% t(X) %*% y
+  
+  #get y-hat (fitted values) 
+  y_hat <- X %*% beta_hat
+  #get residuals
+  residuals <- y - y_hat
+  
+  #get them Hat matrix (and diagonals)
+  H <- X %*% XtX_inv %*% t(X)
+  leverage <- diag(H)
+  
+  #get studentised residuals 
+  n <- nrow(X)
+  p <- ncol(X)
+  RSE <- sqrt(sum(residuals^2) / (n - p))
+  MSE <- sum(residuals^2) / (n - p)
+  studentized_residuals <- residuals / (RSE * sqrt(1 - leverage))
+  high_residuals <- studentized_residuals[abs(studentized_residuals)>= 2]
+  
+  ##### distance measures 
+  
+  # Cook's D
+  cooks_distance <- (residuals^2 / (p * MSE)) * (leverage / (1 - leverage)^2)
+  
+  # DFFITs 
+  dffits <- studentized_residuals * sqrt(leverage) / (1 - leverage)
+  
+  # Hadi's
+  H1 <- leverage / (1 - leverage)
+  H2 <- (residuals^2) / (MSE * (1 - leverage))
+  Hadi_influence <- H1 + H2
+
+  
+  ##### outliers, etc. 
+  if (length(high_residuals) > 0) {
+    cat("Number of Outliers:", length(high_residuals), "\n")
+  }
+  
+  #calculate influential points 
+  threshold <- 4 / (n - p)
+  influential_points <- which(cooks_distance > threshold)
+  
+  if (length(influential_points) > 0) {
+    cat("Number of Influential Points:", length(high_residuals),"\n")
+  }
+  influencers <- data.frame(cooks_distance,dffits,Hadi_influence)
+  names(influencers) <- c("Cook's D", "DFFITs", "Hadi's Influence")
+  
+  #### Plotting 
+  
+  #cooks threshold line: 
+  #df1 <- p    
+  #df2 <- n - p
+  #F_critical <- qf(0.5, df1, df2)
+  cooks_cut <- 4/nrow(data)
+  dffits_cut <- 3*sqrt((p)/(n-p-1))
+  hadi_cut <- 2
+  
+  # labels 
+  cooks_label <- rep(NA,length(cooks_distance))
+  dffits_label <- rep(NA,length(dffits))
+  hadi_label <- rep(NA,length(Hadi_influence))
+  for (i in 1:nrow(data)){
+    cooks_label[i] <- ifelse(cooks_distance[i] >= cooks_cut, i, NA)
+  }
+  
+  plot(cooks_d, type = "h", 
+       main = "Cook's Distance", 
+       ylab = "Cook's Distance", 
+       xlab = "Observation", col = "blue")
+  abline(h = cooks_cut, col = "red", lty = 2)
+  text(1:length(cooks_label), 
+       cooks_distance, labels = cooks_label, pos = 3, cex = 0.8, col = "blue")
+  
+  
+  #### return
+  
+  return(influencers)
+  
+}
+
+```
+
+## Test out function 
+
+```{r}
+tort <- influencer(lm2, data)
+cooks_d <- tort$`Cook's D`
+dffits <- tort$DFFITs
+adi_influence <- tort$`Hadi's Influence`
+
+median(cooks_d)
+
+# Cook's Distance with labels
+alpha <- 0.05
+df1 <- p       # Degrees of freedom for the numerator (number of parameters)
+df2 <- 100000000 - p   # Degrees of freedom for the denominator (number of observations - number of parameters)
+qf(0.5, df1, df2)
+
+# Plot Cook's Distance
+plot(cooks_d, type = "h", 
+     main = "Cook's Distance", 
+     ylab = "Cook's Distance", xlab = "Observation", col = "blue",
+     ylim = c(0,1))
+abline(h = F_critical, col = "red", lty = 2)  # Add F-critical value line
+
+# DFFITS with labels
+plot(dffits, type = "h", main = "DFFITS", ylab = "DFFITS", xlab = "Observation", col = "green")
+abline(h = 2 * sqrt(p/n), col = "red", lty = 2)
+text(1:length(dffits), dffits, labels = round(dffits, 2), pos = 3, cex = 0.8, col = "green")
+
+# Hadi's Measure with labels
+plot(Hadi_influence, type = "h", main = "Hadi's Influence Measure", ylab = "Hadi's Measure", xlab = "Observation", col = "purple")
+abline(h = 2, col = "red", lty = 2)
+text(1:length(Hadi_influence), Hadi_influence, labels = round(Hadi_influence, 2), pos = 3, cex = 0.8, col = "purple")
+
+```
+
+
 
 
 
