@@ -302,17 +302,20 @@ influencer <- function(model, data, plot = "none") {
   if (length(influential_points) > 0) {
     cat("Number of Influential Points:", length(high_residuals),"\n")
   }
+  
+  ##### put it all into a dataframe
   influencers <- data.frame(cooks_distance,dffits,Hadi_influence)
   names(influencers) <- c("Cook's D", "DFFITs", "Hadi's Influence")
   
-  #### Plotting 
+  #### Plotting
+  # options: "none", "all", "Cooks", "DFFITS", "Hadi"
   
   #cooks threshold line: 
   #df1 <- p    
   #df2 <- n - p
   #F_critical <- qf(0.5, df1, df2)
   cooks_cut <- 4/nrow(data)
-  dffits_cut <- 3*sqrt((p)/(n-p-1))
+  dffits_cut <- 2*sqrt((p)/(n-p-1))
   hadi_cut <- 2
   
   # labels 
@@ -320,16 +323,49 @@ influencer <- function(model, data, plot = "none") {
   dffits_label <- rep(NA,length(dffits))
   hadi_label <- rep(NA,length(Hadi_influence))
   for (i in 1:nrow(data)){
-    cooks_label[i] <- ifelse(cooks_distance[i] >= cooks_cut, i, NA)
+    cooks_label[i] <- ifelse(abs(cooks_distance[i]) >= cooks_cut, i, NA)
+    dffits_label[i] <- ifelse(abs(dffits[i]) > dffits_cut, i, NA)
+    hadi_label[i] <- ifelse(abs(Hadi_influence[i]) > hadi_cut, i, NA)
   }
   
-  plot(cooks_d, type = "h", 
-       main = "Cook's Distance", 
-       ylab = "Cook's Distance", 
-       xlab = "Observation", col = "blue")
-  abline(h = cooks_cut, col = "red", lty = 2)
-  text(1:length(cooks_label), 
-       cooks_distance, labels = cooks_label, pos = 3, cex = 0.8, col = "blue")
+  if (plot == "cooks" | plot == "all") {
+    # cooks plot with labels
+       plot(cooks_d, type = "h", 
+            main = "Cook's Distance", 
+            ylab = "Cook's Distance", 
+            xlab = "Observation", col = "navyblue")
+       abline(h = cooks_cut, col = "darkred", lty = 2)
+       text(1:length(cooks_label), 
+            cooks_distance, labels = cooks_label, pos = 3, cex = 0.8, col = "navyblue")
+  }
+  
+  if (plot == "DFFITS" | plot == "all") {
+    # DFFITS with labels
+    plot(dffits, type = "h", 
+       main = "DFFITS", 
+       ylab = "DFFITS", 
+       xlab = "Observation", col = "forestgreen")
+    abline(h = dffits_cut, col = "darkred", lty = 2)
+    abline(h = -dffits_cut, col = "darkred", lty = 2)
+    text(1:length(dffits), 
+       dffits, labels = dffits_label, pos = 3, cex = 0.8, col = "forestgreen")
+    
+  }
+       
+  
+  if (plot == "Hadi" | plot == "all") {
+    # Hadi's Measure with labels
+    plot(Hadi_influence, type = "h", 
+       main = "Hadi's Influence Measure", 
+       ylab = "Hadi's Measure", 
+       xlab =   "Observation", col = "violet")
+    abline(h = 2, col = "darkgrey", lty = 2)
+    text(1:length(Hadi_influence), 
+       Hadi_influence, labels = hadi_label, pos = 3, cex = 0.8,   col = "violet")
+  }
+  
+
+  
   
   
   #### return
@@ -343,35 +379,14 @@ influencer <- function(model, data, plot = "none") {
 ## Test out function 
 
 ```{r}
-tort <- influencer(lm2, data)
+tort <- influencer(lm2, data, plot = "all")
 cooks_d <- tort$`Cook's D`
 dffits <- tort$DFFITs
 adi_influence <- tort$`Hadi's Influence`
 
 median(cooks_d)
 
-# Cook's Distance with labels
-alpha <- 0.05
-df1 <- p       # Degrees of freedom for the numerator (number of parameters)
-df2 <- 100000000 - p   # Degrees of freedom for the denominator (number of observations - number of parameters)
-qf(0.5, df1, df2)
 
-# Plot Cook's Distance
-plot(cooks_d, type = "h", 
-     main = "Cook's Distance", 
-     ylab = "Cook's Distance", xlab = "Observation", col = "blue",
-     ylim = c(0,1))
-abline(h = F_critical, col = "red", lty = 2)  # Add F-critical value line
-
-# DFFITS with labels
-plot(dffits, type = "h", main = "DFFITS", ylab = "DFFITS", xlab = "Observation", col = "green")
-abline(h = 2 * sqrt(p/n), col = "red", lty = 2)
-text(1:length(dffits), dffits, labels = round(dffits, 2), pos = 3, cex = 0.8, col = "green")
-
-# Hadi's Measure with labels
-plot(Hadi_influence, type = "h", main = "Hadi's Influence Measure", ylab = "Hadi's Measure", xlab = "Observation", col = "purple")
-abline(h = 2, col = "red", lty = 2)
-text(1:length(Hadi_influence), Hadi_influence, labels = round(Hadi_influence, 2), pos = 3, cex = 0.8, col = "purple")
 
 ```
 
