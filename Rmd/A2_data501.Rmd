@@ -232,7 +232,7 @@ y <- data.matrix(y)
   # compute Beta hat
   XtX <- t(X) %*% X
   beta.hat <- solve(XtX) %*% t(X) %*% y
-  
+lm2$coefficients
   dim(X)
 ```
 
@@ -244,6 +244,37 @@ ___
 influencer <- function(model, data, plot = "none") {
   
   ##### input validation 
+  if (!is.data.frame(data)) {
+    stop("Input data must be a data.frame.")
+  }
+  
+  if (!inherits(model, c("lm", "glm"))) {
+    stop("Input model must be an lm or glm object.")
+  }
+  
+  if (nrow(data) < 3) {
+    stop("Dataset is too small")
+  }
+  
+  if (ncol(data) < 2) {
+  stop("Input data must have at least 2 columns.")
+  }
+  
+  if (nrow(data) == 0) {
+  stop("Input data must have at least 1 row.")
+  }
+  
+  if (nrow(data) < ncol(data)) {
+    stop("Dataset is the wrong dimension")
+  }
+  
+  if (any(is.na(data))) {
+    stop("Input data contains NA values.")
+  }
+  
+  if (any(is.infinite(data))) {
+    stop("Input data contains infinite values.")
+  }
   
   ##### obtain model variables 
   # get y
@@ -290,9 +321,10 @@ influencer <- function(model, data, plot = "none") {
   Hadi_influence <- H1 + H2
 
   
-  ##### outliers, etc. 
+  ##### outliers, etc.
+  #prints number of outliers (does nothing for now)
   if (length(high_residuals) > 0) {
-    cat("Number of Outliers:", length(high_residuals), "\n")
+    #cat("Number of Outliers:", length(high_residuals), "\n")
   }
   
   #calculate influential points 
@@ -300,7 +332,7 @@ influencer <- function(model, data, plot = "none") {
   influential_points <- which(cooks_distance > threshold)
   
   if (length(influential_points) > 0) {
-    cat("Number of Influential Points:", length(high_residuals),"\n")
+    #cat("Number of Influential Points:", length(high_residuals),"\n")
   }
   
   ##### put it all into a dataframe
@@ -380,6 +412,7 @@ influencer <- function(model, data, plot = "none") {
 
 ```{r}
 tort <- influencer(lm2, data, plot = "all")
+influencer(rnorm(100), data = data)
 cooks_d <- tort$`Cook's D`
 dffits <- tort$DFFITs
 adi_influence <- tort$`Hadi's Influence`
