@@ -25,6 +25,7 @@ library(pander)
 library(dplyr)
 library(ggplot2)
 library(basetheme)
+library(testthat)
 ```
 
 <!-- Settings and Options -->
@@ -200,6 +201,26 @@ For DFFITs, points that are $|DFFITs_i|\ge 3\sqrt{\frac{p+1}{(n-p-1)}}$ will be 
 
 Kuh, and Welsch recommend 2 as a general cut-off value to indicate a value of influence. [@welsch_linear_1977]
 
+## Remarks
+
+Cook's distance, DFFITS, and Hadi's influence measure are all diagnostic tools used in regression analysis to identify influential observations—those data points that significantly affect the model's parameters or predictions.
+
+All three techniques aim to detect influential data points by assessing the impact of each observation on the fitted regression model. They are particularly useful for identifying outliers or high-leverage points that could disproportionately skew the model’s results. Each method evaluates the effect of removing an observation on the estimated parameters or predicted values, helping to ensure the robustness of the model.
+
+### Differences in each approach
+
+**Cook's Distance** measures the influence of an observation by assessing how much the fitted values (predicted outcomes) change when that observation is removed. It combines information from both the residual (how far the point is from the fitted line) and the leverage (how much the point affects the estimation of the model coefficients). A commonly used rule of thumb is to consider observations with Cook’s Distance greater than $\frac{4}{n}$ or $ F_{\alpha(p, n-p)}$ as potentially influential.
+
+This measure is typically used for an overall assessment of an observation’s influence on the entire regression model. It’s useful to understand the combined effect of leverage and residuals on the model’s fitted values.
+
+**DFFITS** (Difference in Fits) assesses the influence of an observation by evaluating the change in predicted values when that observation is removed. Unlike Cook’s Distance, which provides a single measure for each observation, DFFITS focuses on how the prediction for each observation changes when that observation is excluded. This makes DFFITS more sensitive to the specific impact of an observation on its own predicted value. The rule of thumb is that values greater than $\ge 3\sqrt{\frac{p+1}{(n-p-1)}}$ may indicate influential observations.
+
+The method is more focused on the impact of each observation on its predicted value, making it useful when there is particular concerned about how individual data points affect their own predictions.
+
+**Hadi’s Influence Measure** is designed to detect both high-leverage points and outliers by assessing the combined effect of an observation’s leverage and residual. Hadi’s measure is often considered more robust than Cook’s Distance and DFFITS because it accounts for the influence of both the leverage and the residuals simultaneously. A threshold value of 2 is often used to identify influential observations.
+
+This method is used when a more comprehensive diagnostic is needed that considers both leverage and residuals, especially in situations where you suspect that the influence is due to both the observation's position in the design space and its discrepancy from the model.
+
 
 # Function 
 
@@ -234,6 +255,8 @@ y <- data.matrix(y)
   beta.hat <- solve(XtX) %*% t(X) %*% y
 lm2$coefficients
   dim(X)
+  
+model.matrix(lm2)
 ```
 
 
@@ -268,11 +291,11 @@ influencer <- function(model, data, plot = "none") {
     stop("Dataset is the wrong dimension")
   }
   
-  if (any(is.na(data))) {
-    stop("Input data contains NA values.")
+  if (sum(is.na(data)) / prod(dim(data)) * 100 > 5) {
+    stop("Input data contains more than 5% NA values.")
   }
   
-  if (any(is.infinite(data))) {
+  if (any(is.infinite(as.matrix(data)))) {
     stop("Input data contains infinite values.")
   }
   
@@ -281,9 +304,10 @@ influencer <- function(model, data, plot = "none") {
   y <- model$model[1]
   y <- data.matrix(y)
   # get X matrix
-  X <- model$model[-1]
-  X <- cbind(intercept = rep(1, nrow(X)), X)
-  X <- data.matrix(X)
+  #X <- model$model[-1]
+  #X <- cbind(intercept = rep(1, nrow(X)), X)
+  #X <- data.matrix(X)
+  X <- model.matrix(model, data = data)
   
   # compute Beta hat
   XtX <- t(X) %*% X
@@ -411,15 +435,108 @@ influencer <- function(model, data, plot = "none") {
 ## Test out function 
 
 ```{r}
-tort <- influencer(lm2, data, plot = "all")
-influencer(rnorm(100), data = data)
-cooks_d <- tort$`Cook's D`
-dffits <- tort$DFFITs
-adi_influence <- tort$`Hadi's Influence`
+#test model:
+data1 <- mtcars
+model1 <- lm(mpg ~ wt + hp, data = data)
+influencer()
 
-median(cooks_d)
+### generated data
+data2 <- randu
+model2 <- glm(z ~ x + y, data = data2)
+data3 <- data.frame(a = rep(c(NA,runif(1)), 50), b = rnorm(100), c=(runif(100)))
+model3 <- lm(b ~ a + c, data = data3)
+data4 <- c(rnorm(50), Inf)
+data5 <- c("a", "b", "c")
+data6 <- c(1, 2)
+data7 <- rbinom(300, 1000, prob = 0.7)
+```
+
+```{r}
+library(testthat)
+
+# Test 1: Input Validation - non-data.frame input
+test_that("Input data must be a data.frame.", {
+  model <- lm(mpg ~ wt + hp, data = mtcars)
+  expect_error(influencer(model, matrix(mtcars), plot = "none"), 
+               "Input data must be a data.frame.")
+})
+
+# Test 2: Input Validation - wrong model type
+test_that("Input model must be an lm or glm object.", {
+  expect_error(influencer(mtcars, mtcars, plot = "none"), 
+               "Input model must be an lm or glm object.")
+})
+
+# Test 3: Input Validation - dataset is too small
+test_that("Dataset is too small", {
+  small_data <- mtcars[1:2, ]
+  model <- lm(mpg ~ wt + hp, data = small_data)
+  expect_error(influencer(model, small_data, plot = "none"), 
+               "Dataset is too small")
+})
+
+# Test 4: Input Validation - too many NA values
+test_that("Input data contains more than 5% NA values.", {
+  data_with_na <- mtcars
+  data_with_na[1:3, 1] <- NA  # Introduce some NA values
+  model <- lm(mpg ~ wt + hp, data = data_with_na)
+  expect_error(influencer(model, data_with_na, plot = "none"), 
+               "Input data contains more than 5% NA values.")
+})
+
+# Test 5: Correct Output Structure
+test_that("Output should be a data frame with correct columns", {
+  model <- lm(mpg ~ wt + hp, data = mtcars)
+  output <- influencer(model, mtcars, plot = "none")
+  expect_true(is.data.frame(output))
+  expect_equal(names(output), c("Cook's D", "DFFITs", "Hadi's Influence"))
+})
+
+# Test 6: Correctness of calculations (basic test)
+test_that("Correctness of influencer calculations", {
+  model <- lm(mpg ~ wt + hp, data = mtcars)
+  output <- influencer(model, mtcars, plot = "none")
+  
+  # Assuming pre-calculated values for a specific row for testing
+  expect_equal(round(output[1, "Cook's D"], 3), 0.046)
+  expect_equal(round(output[1, "DFFITs"], 3), 0.195)
+  expect_equal(round(output[1, "Hadi's Influence"], 3), 0.292)
+})
+
+# Test 7: Plotting functionality
+test_that("Plotting does not throw errors", {
+  model <- lm(mpg ~ wt + hp, data = mtcars)
+  
+  expect_silent(influencer(model, mtcars, plot = "none"))
+  expect_silent(influencer(model, mtcars, plot = "cooks"))
+  expect_silent(influencer(model, mtcars, plot = "DFFITS"))
+  expect_silent(influencer(model, mtcars, plot = "Hadi"))
+  expect_silent(influencer(model, mtcars, plot = "all"))
+})
+
+```
 
 
+
+
+
+```{r tests}
+context("Testing influencer context")
+
+## invalid inputs 
+test_that("function influencer gives helpful errors", 
+          {
+            expect_error(influencer(model1, matrix(data1), plot = "none"), 
+               "Input data must be a data.frame.")
+            
+            
+            
+            })
+
+## valid inputs
+test_that("function influencer works with dataframes and lm/glm objects", {
+  
+})
 
 ```
 
