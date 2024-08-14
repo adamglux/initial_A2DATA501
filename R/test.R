@@ -1,3 +1,23 @@
+#test model:
+data1 <- mtcars
+model1 <- lm(mpg ~ wt + hp, data = data1)
+
+### generated data
+data2 <- randu
+model2 <- glm(z ~ x + y, data = data2)
+data3 <- data.frame(a = rep(c(NA,runif(1)), 50), b = rnorm(100), c=(runif(100)))
+model3 <- lm(b ~ a + c, data = data3)
+data4 <- data.frame(y = c(runif(10),Inf), x = 1:11, z = 21:31)
+model4 <- lm(z ~ x, data = data4)
+data5 <- data.frame(x = c(1:4), y = c(rnorm(4)))
+model5 <- lm(y ~ x, data = data5)
+data6 <- data.frame(y = c(1:10))
+model6 <- lm(y ~ 1, data = data6)
+matx7 <- matrix(1:30, nrow = 5)
+data7 <- data.frame(matx7)
+model7 <- lm(X1 ~ X2, data = data7)
+
+
 context("Testing influenceR context")
 
 ## invalid inputs 
@@ -29,7 +49,7 @@ test_that("function influenceR gives helpful errors",
             
             output <- influenceR(model1, data1, plot = "none")
             expect_true(is.list(output))
-            expect_equal(names(output$influenceRs), c("Cook's D", "DFFITs", "Hadi's Influence"))
+            expect_equal(names(output$influence_measures), c("Cook's D", "DFFITs", "Hadi's Influence"))
             
             
             # Assuming pre-calculated values for a specific row for testing
