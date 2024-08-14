@@ -221,7 +221,7 @@ This method is used when a more comprehensive diagnostic is needed that consider
 ```{r}
 cooks_plot <- function(h, label, dist) {
     # cooks plot with labels
-       plot(cooks_d, type = "h", 
+       plot(dist, type = "h", 
             main = "Cook's Distance", 
             #ylim = c(min(cooks_distance) - mean(co), max(cooks_distance)+1),
             ylab = "Cook's Distance", 
@@ -233,7 +233,7 @@ cooks_plot <- function(h, label, dist) {
   
 dffits_plot <- function(h, label, dist) {
     # DFFITS with labels
-    plot(dffits, type = "h", 
+    plot(dist, type = "h", 
        main = "DFFITS", 
        ylab = "DFFITS", 
        xlab = "Observation", col = "forestgreen")
@@ -246,7 +246,7 @@ dffits_plot <- function(h, label, dist) {
   
 hadi_plot <- function(label, dist) {
     # Hadi's Measure with labels
-    plot(Hadi_influence, type = "h", 
+    plot(dist, type = "h", 
        main = "Hadi's Influence Measure", 
        ylab = "Hadi's Measure", 
        xlab =   "Observation", col = "violet")
@@ -366,29 +366,29 @@ influencer <- function(model, data, plot = "none") {
   #df1 <- p    
   #df2 <- n - p
   #F_critical <- qf(0.5, df1, df2)
-  cooks_cut <- 4/nrow(data)
-  dffits_cut <- 2*sqrt((p)/(n-p-1))
-  hadi_cut <- 2
+  cooks_cutoff <- 4/nrow(data)
+  dffits_cutoff <- 2*sqrt((p)/(n-p-1))
+  hadi_cutoff <- 2
   
   # labels 
   cooks_label <- rep(NA,length(cooks_distance))
   dffits_label <- rep(NA,length(dffits))
   hadi_label <- rep(NA,length(Hadi_influence))
   for (i in 1:nrow(data)){
-    cooks_label[i] <- ifelse(abs(cooks_distance[i]) >= cooks_cut, i, NA)
-    dffits_label[i] <- ifelse(abs(dffits[i]) > dffits_cut, i, NA)
-    hadi_label[i] <- ifelse(abs(Hadi_influence[i]) > hadi_cut, i, NA)
+    cooks_label[i] <- ifelse(abs(cooks_distance[i]) >= cooks_cutoff, i, NA)
+    dffits_label[i] <- ifelse(abs(dffits[i]) > dffits_cutoff, i, NA)
+    hadi_label[i] <- ifelse(abs(Hadi_influence[i]) > hadi_cutoff, i, NA)
   }
   
   # empty list of functions 
   plots <- list()
   
   if (plot == "cooks" | plot == "all") {
-    plots$Cooks <- function() {cooks_plot(cooks_cut, cooks_label, cooks_distance)}
+    plots$Cooks <- function() {cooks_plot(cooks_cutoff, cooks_label, cooks_distance)}
   }
   
   if (plot == "DFFITS" | plot == "all") {
-    plots$DFFITS <- function() {dffits_plot(dffits_cut, dffits_label, dffits)}
+    plots$DFFITS <- function() {dffits_plot(dffits_cutoff, dffits_label, dffits)}
   }
   
   if (plot == "Hadi" | plot == "all") {
@@ -396,14 +396,6 @@ influencer <- function(model, data, plot = "none") {
   }
   
   
-  
-  
-    
-    
-    
-    
-    
-    
   #   # cooks plot with labels
   #      plot(cooks_d, type = "h", 
   #           main = "Cook's Distance", 
@@ -520,14 +512,14 @@ test_that("function influencer gives helpful errors",
                "Input for plot must be either: none, all, cooks, DFFITS, or Hadi")
               
               output <- influencer(model1, data1, plot = "none")
-              expect_true(is.data.frame(output))
-              expect_equal(names(output), c("Cook's D", "DFFITs", "Hadi's Influence"))
+              expect_true(is.list(output))
+              expect_equal(names(output$influencers), c("Cook's D", "DFFITs", "Hadi's Influence"))
               
               
               # Assuming pre-calculated values for a specific row for testing
-              expect_equal(round(output[1, "Cook's D"], 3), 0.016)
-              expect_equal(round(output[1, "DFFITs"], 3), -0.223)
-              expect_equal(round(output[1, "Hadi's Influence"], 3), 1.076)
+              expect_equal(round(output[[1]][1, "Cook's D"], 3), 0.016)
+              expect_equal(round(output[[1]][1, "DFFITs"], 3), -0.223)
+              expect_equal(round(output[[1]][1, "Hadi's Influence"], 3), 1.076)
             
             })
 
@@ -544,7 +536,6 @@ test_that("function influencer works with dataframes, lm/glm objects, and plots"
   expect_silent(influencer(model1, mtcars, plot = "all"))
   
 })
-
 
 ```
 
@@ -568,6 +559,12 @@ cat("difference in max Cook's vs max Hadi's = ",
     max(sample1$`Cook's D`) - max(sample1$`Hadi's Influence`))
 
 
+cork <- influencer(model2, data2, plot = "all")
+sample1$plots$Hadi()
+cork$plots$Hadi()
+
+output <- influencer(model1, data1, plot = "none")
+output[[1]]
 ```
 
 
